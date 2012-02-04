@@ -8,7 +8,7 @@ Configure your Google Calendar
 - Scroll down to 'Private Calendar Address'.
 - Right-click the XML button and copy the URL
 
-This version is placed on GIT because @samstarling told me to. I don't really know what I'm doing. If I've forgotten, then you'll also find this code at http://james.cridland.net/code/google-calendar.html instead.
+This version is placed on GIT because @samstarling told me to. And then I didn't do much with it. And then @andybee told me to. I suspect some kind of Github campaign or something. I don't really know what I'm doing. If I've forgotten, then you'll also find this code at http://james.cridland.net/code/google-calendar.html instead.
 
 And there's an example of it working at http://james.cridland.net/speaking if you want to take a look.
 

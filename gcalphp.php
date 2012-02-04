@@ -1,5 +1,12 @@
 <?php
 
+//v1.50: Correctly orders results again (thanks, Tiffany in Oxnard CA, USA)
+//		 fix for uninitialised variable (thanks, Daryl in Harrison OH, USA)
+//		 debug now reports server's local time, which might be handy.
+//		 potential fix for events appearing on wrong day (thanks, Ashok)
+//		 replacement of deprecated eregi_replace (thanks, Sean in Iowa)
+//		 Updated 5 February 2012
+//v1.41: Small fix for max-results, which had disappeared. Thanks, Pete in Chicago
 //v1.40: ...and now we have a cache, thanks to Emilio Velis who got @ramayac to
 //       write it for him. Which is excellent. Updated 21 February 2011
 //v1.30: Daylight savings time *is*, honestly, now properly dealt with.
@@ -64,10 +71,11 @@ $debug_mode=false;
 //End of configuration block
 /////////
 
-if ($debug_mode) {error_reporting (E_ALL); echo "<P>Debug mode is on.</p>";}
+if ($debug_mode) {error_reporting (E_ALL); ini_set('display_errors', 1);
+ini_set('error_reporting', E_ALL); echo "<P>Debug mode is on. Hello there.<BR>Your server thinks the time is ".date(DATE_RFC822)."</p>";}
 
 // Form the XML address.
-$calendar_xml_address = str_replace("/basic","/full?singleevents=true&futureevents=true&orderby=starttime&sortorder=a",$calendarfeed); //This goes and gets future events in your feed.
+$calendar_xml_address = str_replace("/basic","/full?singleevents=true&futureevents=true&max-results".$items_to_show."&orderby=starttime&sortorder=a",$calendarfeed); //This goes and gets future events in your feed.
 
 if ($debug_mode) {
 echo "<P>We're going to go and grab <a href='$calendar_xml_address'>this feed</a>.<P>";}
@@ -108,26 +116,27 @@ if ($use_cache) {
 if ($debug_mode) {echo "<P>Successfully got the GCal feed.</p>";}
 
 $items_shown=0;
+$old_date="";
 $xml->asXML();
 
 foreach ($xml->entry as $entry){
 	$ns_gd = $entry->children('http://schemas.google.com/g/2005');
 
 	//Do some niceness to the description
-	//Make any URLs used in the description clickable: thanks Adam
-	$description = eregi_replace('(((f|ht){1}tp://)[-a-zA-Z0-9@:%_\+.~#?,&//=]+)','<a href="\\1">\\1</a>', $entry->content);
-	// Make email addresses in the description clickable: thanks, Bjorn
-	$description = eregi_replace('([_.0-9a-z-]+@([0-9a-z][0-9a-z-]+\.)+[a-z]{2,3})','<a
-href="mailto:\\1">\\1</a>', $description);
+	//Make any URLs used in the description clickable
+	$description = preg_replace('"\b(http://\S+)"', '<a href="$1">$1</a>', $entry->content);
+	
+	// Make email addresses in the description clickable
+	$description = preg_replace("`([-_a-z0-9]+(\.[-_a-z0-9]+)*@[-a-z0-9]+(\.[-a-z0-9]+)*\.[a-z]{2,6})`i","<a href=\"mailto:\\1\" title=\"mailto:\\1\">\\1</a>", $description);
 
 	if ($debug_mode) { echo "<P>Here's the next item's start time... GCal says ".$ns_gd->when->attributes()->startTime." PHP says ".date("g.ia  -Z",strtotime($ns_gd->when->attributes()->startTime))."</p>"; }
 
 	// These are the dates we'll display
-	$gCalDate = date($dateformat, strtotime($ns_gd->when->attributes()->startTime)+date("Z",strtotime($ns_gd->when->attributes()->startTime)));
-	$gCalDateStart = date($dateformat, strtotime($ns_gd->when->attributes()->startTime)+date("Z",strtotime($ns_gd->when->attributes()->startTime)));
-	$gCalDateEnd = date($dateformat, strtotime($ns_gd->when->attributes()->endTime)+date("Z",strtotime($ns_gd->when->attributes()->endTime)));
-	$gCalStartTime = gmdate($timeformat, strtotime($ns_gd->when->attributes()->startTime)+date("Z",strtotime($ns_gd->when->attributes()->startTime)));
-	$gCalEndTime = gmdate($timeformat,strtotime($ns_gd->when->attributes()->endTime)+date("Z",strtotime($ns_gd->when->attributes()->endTime)));
+	$gCalDate = date($dateformat, strtotime($ns_gd->when->attributes()->startTime));
+	$gCalDateStart = date($dateformat, strtotime($ns_gd->when->attributes()->startTime));
+	$gCalDateEnd = date($dateformat, strtotime($ns_gd->when->attributes()->endTime));
+	$gCalStartTime = date($timeformat, strtotime($ns_gd->when->attributes()->startTime));
+	$gCalEndTime = date($timeformat, strtotime($ns_gd->when->attributes()->endTime));
                    
 	// Now, let's run it through some str_replaces, and store it with the date for easy sorting later
 	$temp_event=$event_display;
